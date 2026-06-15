@@ -4,4 +4,8 @@ AI201 Project 3: Fine-tuned classifier for evaluating discourse quality in an on
 
 ## Project Status
 
-In Progress
+Analytical: 7
+Preference: 4
+Reactive: 4
+
+Total: 15
