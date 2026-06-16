@@ -1,11 +1,19 @@
-# TakeMeter
+## Label Taxonomy
 
-AI201 Project 3: Fine-tuned classifier for evaluating discourse quality in an online community.
+### Analytical Take
+Comments that support an opinion with reasoning, evidence, comparisons, explanations, or discussion of industry trends.
 
-## Project Status
+Example:
+"Plastic surgery is not as common in South Korea as the internet seems to think it is..."
 
-Analytical: 7
-Preference: 4
-Reactive: 4
+### Preference Take
+Comments expressing personal taste, enjoyment, recommendations, or subjective preferences.
 
-Total: 15
+Example:
+"I loved the title track but my favorite song was Anti Believer."
+
+### Reactive Take
+Comments driven primarily by emotion, excitement, outrage, sarcasm, humor, or fandom reactions.
+
+Example:
+"Jennie is doing great and the haters are crying."
