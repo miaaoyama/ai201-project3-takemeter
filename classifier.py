@@ -1,86 +1,89 @@
-import json
 import os
+import pandas as pd
 from groq import Groq
-from config import GROQ_API_KEY, LLM_MODEL, VALID_LABELS, DATA_PATH, TRAIN_FILE, LABELS_FILE
+from config import GROQ_API_KEY, LLM_MODEL
+
+VALID_LABELS = [
+    "Analytical Take",
+    "Preference Take",
+    "Reactive Take",
+]
+
+DATASET_PATH = "data/labeled_dataset.csv"
 
 _client = Groq(api_key=GROQ_API_KEY)
 
 
 def load_labeled_examples() -> list[dict]:
     """
-    Load the training episodes and merge them with the student's labels.
+    Load labeled examples from the project CSV.
 
-    Returns a list of dicts, each with:
-      - "id"          : episode ID
-      - "title"       : episode title
-      - "podcast"     : podcast name
-      - "description" : episode description
-      - "label"       : the label from my_labels.json (may be None if not yet annotated)
-
-    Only returns episodes where the label is a valid, non-null string.
-    Episodes with null labels are silently skipped.
+    Returns a list of dicts with:
+      - "text": the post/comment text
+      - "label": the human-assigned label
     """
-    train_path = os.path.join(DATA_PATH, TRAIN_FILE)
-    labels_path = os.path.join(DATA_PATH, LABELS_FILE)
+    if not os.path.exists(DATASET_PATH):
+        return []
 
-    with open(train_path, encoding="utf-8") as f:
-        episodes = {ep["id"]: ep for ep in json.load(f)}
-
-    with open(labels_path, encoding="utf-8") as f:
-        labels = {entry["id"]: entry["label"] for entry in json.load(f)}
+    df = pd.read_csv(DATASET_PATH)
 
     labeled = []
-    for ep_id, ep in episodes.items():
-        label = labels.get(ep_id)
-        if label in VALID_LABELS:
-            labeled.append({**ep, "label": label})
+    for _, row in df.iterrows():
+        text = str(row["text"]).strip()
+        label = str(row["label"]).strip()
+
+        if text and label in VALID_LABELS:
+            labeled.append({
+                "text": text,
+                "label": label,
+            })
 
     return labeled
 
 
-def build_few_shot_prompt(labeled_examples: list[dict], description: str) -> str:
+def build_few_shot_prompt(labeled_examples: list[dict], text: str) -> str:
     examples_text = ""
 
-    for example in labeled_examples:
+    for example in labeled_examples[:15]:
         examples_text += f"""
-            ---
-            Title: {example["title"]}
-            Description: {example["description"]}
-            Label: {example["label"]}
-            """
+---
+Post:
+{example["text"]}
+
+Label: {example["label"]}
+"""
 
     prompt = f"""
-            You are classifying podcast episodes by their format. Classify the episode
-            into exactly one of these four labels:
+You are classifying r/kpopthoughts posts by discourse type.
 
-            - interview: a conversation between a host and one or more guests
-            - solo: a single host speaking from memory, experience, or opinion — no guests,
-              no assembled external sources
-            - panel: multiple guests with roughly equal speaking time, often debating or
-              discussing a topic together
-            - narrative: a story assembled from external sources — interviews, archival
-              audio, reporting — with a clear narrative arc
+Classify the post into exactly one of these three labels:
 
-            Use the labeled examples below as demonstrations.
+- Analytical Take: a structured argument supported by specific examples, evidence, comparisons, observations, or detailed reasoning.
+- Preference Take: a personal preference, ranking, taste, or subjective opinion rather than evidence-based reasoning.
+- Reactive Take: an emotional reaction to a recent event, release, announcement, controversy, or performance.
+
+Use the labeled examples below as demonstrations.
 
 {examples_text}
 
-            Now classify this episode:
+Now classify this new post:
 
-            Description: {description}
+Post:
+{text}
 
-            Return your answer exactly in this format:
+Return your answer exactly in this format:
 
-            LABEL: <interview | solo | panel | narrative>
-            REASONING: <brief explanation>
-            """
+LABEL: <Analytical Take | Preference Take | Reactive Take>
+REASONING: <brief explanation>
+"""
 
     return prompt.strip()
 
 
 def classify_episode(description: str, labeled_examples: list[dict]) -> dict:
     """
-    Classify a single podcast episode description using the few-shot LLM classifier.
+    Classify a single post using the few-shot LLM classifier.
+    Kept the function name classify_episode so starter/evaluation code can still call it.
     """
     try:
         prompt = build_few_shot_prompt(labeled_examples, description)
@@ -102,8 +105,13 @@ def classify_episode(description: str, labeled_examples: list[dict]) -> dict:
             clean_line = line.strip()
 
             if clean_line.lower().startswith("label:"):
-                label = clean_line.split(":", 1)[1].strip().lower()
-                label = label.strip(" .,:;*`\"'")
+                parsed = clean_line.split(":", 1)[1].strip()
+                parsed = parsed.strip(" .,:;*`\"'")
+
+                for valid_label in VALID_LABELS:
+                    if parsed.lower() == valid_label.lower():
+                        label = valid_label
+                        break
 
             elif clean_line.lower().startswith("reasoning:"):
                 reasoning = clean_line.split(":", 1)[1].strip()
