@@ -168,13 +168,16 @@ The dataset was automatically split into training, validation, and test sets usi
 * Learning Rate: 2e-5
 * Batch Size: 16
 
+I used the notebook's default settings of 3 epochs, a learning rate of 2e-5, and a batch size of 16 because they are commonly recommended starting values for fine-tuning DistilBERT on small text classification datasets. Training for additional epochs could increase the risk of overfitting given the relatively small dataset size.
+
 ---
 
 # Zero-Shot Baseline
 
 A baseline classifier was created using:
 
-```text llama-3.3-70b-versatile
+```text
+llama-3.3-70b-versatile
 ```
 
 through Groq.
@@ -204,15 +207,23 @@ The model classified every example in the test set using only these instructions
 
 ### Result
 
-Fine-tuning resulted in a small regression:
-
-```text
--0.032
-```
-
-relative to the zero-shot baseline.
+Fine-tuning resulted in a small regression of **-0.032** relative to the zero-shot baseline.
 
 The baseline model slightly outperformed the fine-tuned model on the test set.
+
+---
+
+## Per-Class Metrics — Fine-Tuned DistilBERT
+
+| Label           | Precision | Recall | F1-score | Support |
+| --------------- | --------: | -----: | -------: | ------: |
+| Analytical Take |      0.61 |   1.00 |     0.76 |      19 |
+| Preference Take |      0.00 |   0.00 |     0.00 |       8 |
+| Reactive Take   |      0.00 |   0.00 |     0.00 |       4 |
+| Macro Avg       |      0.20 |   0.33 |     0.25 |      31 |
+| Weighted Avg    |      0.38 |   0.61 |     0.47 |      31 |
+
+The per-class metrics show that the fine-tuned model learned to identify the majority class, Analytical Take, but failed to correctly recover Preference Take and Reactive Take examples in the test set.
 
 ---
 
@@ -230,14 +241,18 @@ The matrix shows that the model frequently predicted the majority class, Analyti
 
 # Sample Classifications
 
-| Example                                                                                               | Predicted Label | Confidence |
-| ----------------------------------------------------------------------------------------------------- | --------------- | ---------- |
-| "I would give credit to the live band. They were amazing and I loved the jazz they added to the set." | Analytical Take | 0.36       |
-| "The song was cool but the Macarena bit ruined it for me."                                            | Analytical Take | 0.36       |
-| "I always keep my expectations low about releases I am looking forward to."                           | Analytical Take | 0.37       |
-| "Atmos is simply pop music perfection. I have been listening to the album nonstop since it came out." | Analytical Take | 0.38       |
+| Example                                                                                                                                  | Predicted Label | Confidence |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ---------- |
+| "Comparing album sales from 2019–2025 shows that fourth-generation groups are growing internationally faster than previous generations." | Analytical Take | 0.87       |
+| "I would give credit to the live band. They were amazing and I loved the jazz they added to the set."                                    | Analytical Take | 0.36       |
+| "The song was cool but the Macarena bit ruined it for me."                                                                               | Analytical Take | 0.36       |
+| "Atmos is simply pop music perfection. I have been listening to the album nonstop since it came out."                                    | Analytical Take | 0.38       |
 
-These examples demonstrate the model's tendency to classify subjective opinions and emotional reactions as Analytical Take.
+### Correct Prediction Example
+
+The first example was correctly classified as Analytical Take because it presents a structured argument supported by comparison and evidence rather than a personal preference or emotional reaction.
+
+The remaining examples demonstrate the model's tendency to classify subjective opinions and emotional reactions as Analytical Take.
 
 ---
 
@@ -341,15 +356,39 @@ One way the implementation diverged from the original plan was the final label d
 
 ---
 
+# Stretch Feature: Error Pattern Analysis
+
+A systematic pattern emerged in the model's mistakes. The classifier frequently predicted Analytical Take for posts that were actually Preference Take or Reactive Take.
+
+Examples include:
+
+- "The song was cool but the Macarena bit ruined it for me."
+- "I would give credit to the live band. They were amazing and I loved the jazz they added to the set."
+- "Atmos is simply pop music perfection."
+
+These examples suggest that the model learned to associate explanatory language with analysis, even when the post was primarily expressing a preference or emotional reaction.
+
+This pattern likely resulted from class imbalance, since Analytical Take represented approximately 61% of the dataset.
+
+# Stretch Feature: Confidence Calibration
+
+The model's confidence scores were not strongly correlated with correctness.
+
+Several incorrect predictions had confidence scores between 0.35 and 0.38, while correct predictions often fell within a similar range.
+
+This suggests that the model's confidence estimates are not well calibrated and should not be interpreted as probabilities of correctness.
+
 # AI Usage
 
 ## AI Usage Example 1
 
-I used ChatGPT to review and refine label definitions before annotation. The AI generated examples near the boundary between labels, helping identify situations where distinctions were unclear. I revised label definitions after reviewing these examples.
+I used Claude to review and refine label definitions before annotation. The AI generated examples near the boundary between labels, helping identify situations where distinctions were unclear. I revised label definitions after reviewing these examples.
 
 ## AI Usage Example 2
 
-I used ChatGPT during evaluation and failure analysis. After reviewing incorrect predictions, I asked the AI to identify possible error patterns. The AI suggested class imbalance and overlap between Preference Take and Analytical Take examples. I verified these observations manually using the confusion matrix and misclassified examples before including them in the report.
+I used Claude during evaluation and failure analysis. After reviewing incorrect predictions, I asked the AI to identify possible error patterns. The AI suggested class imbalance and overlap between Preference Take and Analytical Take examples. I verified these observations manually using the confusion matrix and misclassified examples before including them in the report.
+
+I did not use AI to automatically assign final labels. All labels included in the final dataset were manually reviewed and approved by me before training.
 
 ---
 
