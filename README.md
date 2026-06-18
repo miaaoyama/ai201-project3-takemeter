@@ -10,15 +10,15 @@ The project investigates whether a fine-tuned DistilBERT model can learn to dist
 
 # Community
 
-I selected **r/kpopthoughts** because it is a large and active online community with highly varied discussion styles. Posts range from detailed analyses of artists and industry trends to personal preferences and emotional reactions to releases, controversies, and performances.
+I selected **r/kpopthoughts** because it is a large and active online community with highly varied discussion styles. Members post detailed analyses of artists and industry trends, personal preferences about music and performers, and emotional reactions to comebacks, controversies, and performances.
 
-This diversity makes it a strong classification problem because community members naturally engage in several different forms of discourse that can be separated into meaningful categories.
+This variety makes the community a strong classification task because users naturally engage in several distinct forms of discourse that can be separated into meaningful categories.
 
 ---
 
 # Label Taxonomy
 
-The classifier predicts one of three labels:
+The classifier predicts one of three labels.
 
 ## Analytical Take
 
@@ -63,8 +63,6 @@ All examples were collected from publicly available posts and comments from:
 
 ## Dataset Size
 
-Total examples:
-
 * 202 labeled examples
 
 ## Label Distribution
@@ -75,13 +73,13 @@ Total examples:
 | Preference Take |    52 |
 | Reactive Take   |    27 |
 
+The dataset is somewhat imbalanced, with Analytical Take examples representing the majority class.
+
 ---
 
 # Difficult Annotation Cases
 
-Several examples were difficult to label because the boundaries between discourse types are not always clear.
-
-### Example 1
+## Example 1
 
 > "I think this group has the strongest stage presence because they seem more confident than others."
 
@@ -96,11 +94,11 @@ Decision:
 
 Reasoning:
 
-The post primarily expresses a subjective judgment despite including a brief explanation.
+The post expresses a subjective judgment despite including a brief explanation.
 
 ---
 
-### Example 2
+## Example 2
 
 > "I loved the comeback because the concept feels more mature."
 
@@ -115,11 +113,11 @@ Decision:
 
 Reasoning:
 
-The focus is on an immediate emotional reaction to the release.
+The focus is on an immediate emotional response to the release.
 
 ---
 
-### Example 3
+## Example 3
 
 > "This group is declining because their recent songs are weaker."
 
@@ -134,15 +132,13 @@ Decision:
 
 Reasoning:
 
-The statement presents a personal opinion without sufficient evidence to form a structured argument.
+The statement presents an opinion without sufficient evidence to form a structured argument.
 
 ---
 
 # Model Training
 
 ## Base Model
-
-The project uses:
 
 ```text
 distilbert-base-uncased
@@ -157,22 +153,16 @@ from Hugging Face.
 
 ## Training Approach
 
-The labeled dataset was split into:
-
-* Training set
-* Validation set
-* Test set
-
-The DistilBERT model was fine-tuned as a three-class text classifier.
+The dataset was automatically split into training, validation, and test sets using the notebook pipeline. DistilBERT was fine-tuned as a three-class sequence classification model.
 
 ## Key Hyperparameters
 
 * Model: DistilBERT
 * Task: Sequence Classification
 * Labels: 3
-* Epochs: notebook default
-* Learning rate: notebook default
-* Batch size: notebook default
+* Epochs: 3
+* Learning Rate: 2e-5
+* Batch Size: 16
 
 ---
 
@@ -188,7 +178,7 @@ through Groq.
 
 The model received the label definitions and classified each test example without task-specific training.
 
-This baseline provides a comparison point to determine whether fine-tuning improved performance.
+This baseline provides a comparison point for evaluating whether fine-tuning improved performance.
 
 ---
 
@@ -211,17 +201,32 @@ Fine-tuning resulted in a small regression:
 
 relative to the zero-shot baseline.
 
+The baseline model slightly outperformed the fine-tuned model on the test set.
+
 ---
 
 # Confusion Matrix
 
-See:
+The confusion matrix generated during evaluation is included in:
 
 ```text
 confusion_matrix.png
 ```
 
-for the full confusion matrix visualization.
+The matrix shows that the model frequently predicted the majority class, Analytical Take, for examples that belonged to Preference Take and Reactive Take.
+
+---
+
+# Sample Classifications
+
+| Example                                                                                               | Predicted Label | Confidence |
+| ----------------------------------------------------------------------------------------------------- | --------------- | ---------- |
+| "I would give credit to the live band. They were amazing and I loved the jazz they added to the set." | Analytical Take | 0.36       |
+| "The song was cool but the Macarena bit ruined it for me."                                            | Analytical Take | 0.36       |
+| "I always keep my expectations low about releases I am looking forward to."                           | Analytical Take | 0.37       |
+| "Atmos is simply pop music perfection. I have been listening to the album nonstop since it came out." | Analytical Take | 0.38       |
+
+These examples demonstrate the model's tendency to classify subjective opinions and emotional reactions as Analytical Take.
 
 ---
 
@@ -240,7 +245,7 @@ for examples that were actually:
 * Preference Take
 * Reactive Take
 
-### Example 1
+## Error Example 1
 
 **True Label:** Preference Take
 
@@ -248,13 +253,13 @@ for examples that were actually:
 
 **Predicted:** Analytical Take
 
-Reason:
+**Reason:**
 
 The model appears to interpret explanatory language as evidence-based analysis.
 
 ---
 
-### Example 2
+## Error Example 2
 
 **True Label:** Preference Take
 
@@ -262,13 +267,13 @@ The model appears to interpret explanatory language as evidence-based analysis.
 
 **Predicted:** Analytical Take
 
-Reason:
+**Reason:**
 
 The model struggled to distinguish subjective opinions from structured arguments.
 
 ---
 
-### Example 3
+## Error Example 3
 
 **True Label:** Reactive Take
 
@@ -276,7 +281,7 @@ The model struggled to distinguish subjective opinions from structured arguments
 
 **Predicted:** Analytical Take
 
-Reason:
+**Reason:**
 
 Strong emotional reactions sometimes contain descriptive language that resembles analytical discussion.
 
@@ -284,20 +289,20 @@ Strong emotional reactions sometimes contain descriptive language that resembles
 
 # Systematic Error Pattern
 
-The model frequently predicted the majority class:
+The most common failure mode was overpredicting the majority class:
 
 ```text
 Analytical Take
 ```
 
-for minority-class examples.
-
 Possible causes include:
 
-1. Class imbalance
-2. Overlap between label definitions
-3. Limited dataset size
-4. Short post lengths that provide limited context
+1. Class imbalance in the training data.
+2. Overlap between Preference Take and Analytical Take examples.
+3. Small dataset size.
+4. Short post length providing limited context.
+
+The confusion matrix and incorrect predictions suggest that the classifier learned broad discussion patterns but did not learn the finer distinctions between subjective opinions and emotional reactions.
 
 ---
 
@@ -317,13 +322,33 @@ The results highlight how important dataset balance and precise label boundaries
 
 ---
 
+# Spec Reflection
+
+The classifier specification helped guide implementation by requiring label definitions and edge-case rules before annotation began. This made the labeling process more consistent and provided clear decision boundaries during dataset creation.
+
+One way the implementation diverged from the original plan was the final label distribution. The planning document initially targeted a balanced dataset, but the final dataset reflected the natural distribution of discourse within the community. This likely contributed to the model's tendency to predict the majority class.
+
+---
+
+# AI Usage
+
+## AI Usage Example 1
+
+I used ChatGPT to review and refine label definitions before annotation. The AI generated examples near the boundary between labels, helping identify situations where distinctions were unclear. I revised label definitions after reviewing these examples.
+
+## AI Usage Example 2
+
+I used ChatGPT during evaluation and failure analysis. After reviewing incorrect predictions, I asked the AI to identify possible error patterns. The AI suggested class imbalance and overlap between Preference Take and Analytical Take examples. I verified these observations manually using the confusion matrix and misclassified examples before including them in the report.
+
+---
+
 # Files Included
 
-* `planning.md`
-* `data/labeled_dataset.csv`
-* `evaluation_results.json`
-* `confusion_matrix.png`
-* `README.md`
+* planning.md
+* README.md
+* data/labeled_dataset.csv
+* evaluation_results.json
+* confusion_matrix.png
 
 ---
 
@@ -331,5 +356,4 @@ The results highlight how important dataset balance and precise label boundaries
 
 This project demonstrated that label design and annotation quality are often more important than model architecture. Although the fine-tuned model did not outperform the zero-shot baseline, the results provided valuable insight into how class imbalance and ambiguous label boundaries affect model behavior.
 
-The most important lesson was that a model learns the patterns present in the labels and examples provided, which may differ from the distinctions the designer intended.
-
+The most important lesson was that a model learns the patterns present in the labels and examples provided, which may differ from the distinctions the designer intended. The project reinforced the importance of careful annotation, balanced datasets, and clear label definitions when building classification systems.
