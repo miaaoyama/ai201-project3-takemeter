@@ -61,6 +61,10 @@ All examples were collected from publicly available posts and comments from:
 
 * r/kpopthoughts
 
+## Labeling Process
+
+Each example was manually reviewed and assigned one of three labels: Analytical Take, Preference Take, or Reactive Take. Labels were assigned according to the definitions established in planning.md. Ambiguous examples were reviewed using the edge-case rules developed during the planning phase to ensure consistency across the dataset.
+
 ## Dataset Size
 
 * 202 labeled examples
@@ -170,15 +174,22 @@ The dataset was automatically split into training, validation, and test sets usi
 
 A baseline classifier was created using:
 
-```text
-llama-3.3-70b-versatile
+```text llama-3.3-70b-versatile
 ```
 
 through Groq.
 
-The model received the label definitions and classified each test example without task-specific training.
+## Baseline Prompt
 
-This baseline provides a comparison point for evaluating whether fine-tuning improved performance.
+The zero-shot baseline used Groq's `llama-3.3-70b-versatile` model. The model was provided with definitions for the three labels and instructed to classify each post into exactly one category without any task-specific training.
+
+### Prompt Summary
+
+* **Analytical Take:** a structured argument supported by evidence, comparisons, observations, or detailed reasoning.
+* **Preference Take:** a personal preference, ranking, taste, or subjective opinion rather than evidence-based reasoning.
+* **Reactive Take:** an emotional reaction to a recent event, release, announcement, controversy, or performance.
+
+The model classified every example in the test set using only these instructions. The resulting predictions were compared directly against the fine-tuned DistilBERT model on the same test set to determine whether fine-tuning improved performance.
 
 ---
 
