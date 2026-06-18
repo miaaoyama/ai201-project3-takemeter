@@ -1,184 +1,198 @@
-# Classifier Spec — Pod Classifier
+# Classifier Spec — TakeMeter K-pop Discourse Classifier
 
-Complete this spec **before** writing any code for Milestone 2.
+Complete this spec before writing or updating classifier code for Project 3.
 
-Use Plan or Ask mode to think through each blank field. When you're done,
-your answers here become the blueprint for `build_few_shot_prompt()` and
-`classify_episode()` in `classifier.py`.
+This classifier is for labeling r/kpopthoughts posts by discourse type. The labels must match the labels in `data/labeled_dataset.csv`.
 
 ---
 
-## build_few_shot_prompt(labeled_examples, description)
+## build_few_shot_prompt(labeled_examples, text)
 
 ### What it does
-Constructs a prompt string for the LLM that includes the task instructions,
-all labeled training examples, and the new episode description to classify.
+
+Constructs a prompt string for the LLM that includes the task instructions, labeled examples from the dataset, and the new post text to classify.
 
 ### Inputs
 
-| Parameter | Type | Description |
-|---|---|---|
-| `labeled_examples` | `list[dict]` | Each dict has `"title"`, `"description"`, `"label"` (and others). These are the examples you labeled in Milestone 1. |
-| `description` | `str` | The episode description to classify. |
+| Parameter          | Type         | Description                                                                               |
+| ------------------ | ------------ | ----------------------------------------------------------------------------------------- |
+| `labeled_examples` | `list[dict]` | Each dict has `"text"` and `"label"`. These are examples from `data/labeled_dataset.csv`. |
+| `text`             | `str`        | The post or comment text to classify.                                                     |
 
 ### Output
 
-| Return value | Type | Description |
-|---|---|---|
-| prompt | `str` | A complete prompt string ready to send to the LLM. |
+| Return value | Type  | Description                                        |
+| ------------ | ----- | -------------------------------------------------- |
+| prompt       | `str` | A complete prompt string ready to send to the LLM. |
 
 ---
 
-### Spec fields — fill these in before writing code
+## Labels
 
-**Task instruction (what should the LLM know about the task?):**
+The classifier must return exactly one of these labels:
 
-```
-You are classifying podcast episodes by their format. Classify the episode
-into exactly one of these four labels:
+* `Analytical Take`
+* `Preference Take`
+* `Reactive Take`
 
-- interview: a conversation between a host and one or more guests
-- solo: a single host speaking from memory, experience, or opinion — no guests,
-  no assembled external sources
-- panel: multiple guests with roughly equal speaking time, often debating or
-  discussing a topic together
-- narrative: a story assembled from external sources — interviews, archival
-  audio, reporting — with a clear narrative arc
+### Analytical Take
 
-Return only the label and your reasoning. Do not explain the taxonomy.
-```
+A post that makes a structured argument supported by specific examples, evidence, comparisons, observations, or detailed reasoning.
 
----
+### Preference Take
 
-**How should labeled examples be formatted in the prompt?**
+A post that primarily expresses a personal preference, ranking, taste, or subjective opinion rather than evidence-based reasoning.
 
-```
-Each example should include the episode title, a brief excerpt or the full
-description, and the correct label. Separate examples with a blank line or
-a delimiter like "---". Include all fields that help the model see why the
-label was applied — title and description are both useful; other fields
-(like episode ID) are not needed.
-```
+### Reactive Take
+
+A post that primarily expresses an emotional reaction to a recent event, release, announcement, controversy, or performance.
 
 ---
 
-**Example block sketch (write one concrete example):**
+## build_few_shot_prompt Spec Fields
 
+### Task instruction
+
+```text
+You are classifying r/kpopthoughts posts by discourse type.
+
+Classify the post into exactly one of these three labels:
+
+- Analytical Take: a structured argument supported by specific examples, evidence, comparisons, observations, or detailed reasoning.
+- Preference Take: a personal preference, ranking, taste, or subjective opinion rather than evidence-based reasoning.
+- Reactive Take: an emotional reaction to a recent event, release, announcement, controversy, or performance.
+
+Return only a label and brief reasoning. Do not invent new labels.
 ```
-Title: {title}
-Description: {description}
+
+### How labeled examples should be formatted
+
+Each labeled example should include the post text and the correct label. Examples should be separated by a delimiter such as `---`. The examples should come from the labeled dataset and should show the model what each label looks like.
+
+### Example block sketch
+
+```text
+---
+Post:
+{text}
+
 Label: {label}
 ```
 
----
+### How the new post should be presented
 
-**How should the new episode (to be classified) be presented?**
+The new post should be presented in the same format as the examples, but without a filled-in label:
 
-```
-Present it in the same format as the labeled examples, but omit the Label
-line and replace it with an instruction to classify. For example:
+```text
+Now classify this new post:
 
-Title: {title}
-Description: {description}
-Label: ?
-
-Then add a line like: "Classify the episode above. Return your answer in
-the format below:" followed by the output format you chose.
+Post:
+{text}
 ```
 
----
+Then the prompt should request the exact output format below.
 
-**What output format should you request from the LLM?**
+### Output format requested from the LLM
 
-I will request a two-line structured text format:
-
-LABEL: <interview | solo | panel | narrative>
+```text
+LABEL: <Analytical Take | Preference Take | Reactive Take>
 REASONING: <brief explanation>
+```
 
-I chose this instead of JSON because it is easier for the LLM to follow and easier for my code to parse with simple string operations. JSON is more structured, but it can break if the model adds extra text or invalid formatting. A label-only response would be easiest to parse, but it would not give reasoning for debugging. The LABEL/REASONING format gives both reliable parsing and useful explanation.
+I chose this two-line structured format because it is easier to parse reliably than a paragraph and less fragile than JSON. JSON is more structured, but an LLM can accidentally add extra text or invalid formatting. A label-only response would be easiest to parse, but reasoning is useful for debugging and failure analysis.
+
+### Edge cases to handle in the prompt
+
+If `labeled_examples` is empty, the prompt should still include the label definitions and ask the model to classify using those definitions. If the post text is very short, the model should make the best classification using the available evidence and return one of the three labels. The model should not create an "other" category.
 
 ---
 
-**Edge cases to handle in the prompt:**
-
-If labeled_examples is empty, the prompt should still include the taxonomy definitions and ask the model to classify using those definitions, but it will not include example blocks. If the description is very short, the prompt should tell the model to make the best classification based on the available format clues and return "unknown" only if the format cannot be determined.
-
----
-
-## classify_episode(description, labeled_examples)
+## classify_episode(text, labeled_examples)
 
 ### What it does
-Classifies a single podcast episode description using the few-shot LLM classifier.
-Returns a dict with a label and reasoning.
+
+Classifies a single r/kpopthoughts post using the few-shot LLM classifier. The function name may remain `classify_episode` if starter or evaluation code expects that name, but the content being classified is a post, not a podcast episode.
 
 ### Inputs
 
-| Parameter | Type | Description |
-|---|---|---|
-| `description` | `str` | The episode description to classify. |
-| `labeled_examples` | `list[dict]` | Labeled training examples from `load_labeled_examples()`. |
+| Parameter          | Type         | Description                                              |
+| ------------------ | ------------ | -------------------------------------------------------- |
+| `text`             | `str`        | The post or comment text to classify.                    |
+| `labeled_examples` | `list[dict]` | Labeled examples loaded from `data/labeled_dataset.csv`. |
 
 ### Output
 
-| Return value | Type | Description |
-|---|---|---|
-| result | `dict` | Must have keys `"label"` and `"reasoning"`. `"label"` must be one of `VALID_LABELS` or `"unknown"`. |
+| Return value | Type   | Description                                                                                                 |
+| ------------ | ------ | ----------------------------------------------------------------------------------------------------------- |
+| result       | `dict` | Must have keys `"label"` and `"reasoning"`. `"label"` must be one of the three valid labels or `"unknown"`. |
 
 ---
 
-### Spec fields — fill these in before writing code
+## classify_episode Spec Fields
 
-**Step 1 — Build the prompt:**
+### Step 1 — Build the prompt
 
-```
-Call build_few_shot_prompt(labeled_examples, description) and store the
-returned string in a variable (e.g., prompt). Pass through both arguments
-exactly as received — no modification needed before calling.
-```
+Call `build_few_shot_prompt(labeled_examples, text)` and store the returned string in a variable called `prompt`.
 
----
+### Step 2 — Send to the LLM
 
-**Step 2 — Send to the LLM:**
+Call `_client.chat.completions.create()` with:
 
-```
-Call _client.chat.completions.create() with:
-  - model: the model name from config (LLM_MODEL)
-  - messages: a list with one dict — {"role": "user", "content": prompt}
-    (system-design.md shows an optional system message too — either shape works)
-  - max_tokens: a reasonable limit (e.g., 200–300) to keep responses concise
+* `model`: the Groq model name
+* `messages`: `[{"role": "user", "content": prompt}]`
+* `max_tokens`: about 200–300
 
-Extract the response text from:
-  response.choices[0].message.content
+Extract the raw response text from:
+
+```python
+response.choices[0].message.content
 ```
 
----
+### Step 3 — Parse the response
 
-**Step 3 — Parse the response:**
+Split the response into lines. Look for a line that starts with `LABEL:` and extract the text after the colon. Strip whitespace, punctuation, markdown symbols, and compare case-insensitively against the valid labels.
 
-Because I chose the LABEL/REASONING format, I will split the LLM response into lines. I will look for a line that starts with "LABEL:" and extract the text after the colon. I will normalize that label by stripping whitespace, removing extra punctuation or markdown if needed, and converting it to lowercase.
+For reasoning, look for a line that starts with `REASONING:` and extract the text after the colon. If there is no reasoning line, use the raw response as the reasoning for debugging.
 
-For reasoning, I will look for a line that starts with "REASONING:" and extract the text after the colon. If there is no reasoning line, I will use the full raw response as the reasoning so I can debug what happened.
+### Step 4 — Validate the label
 
----
+After parsing, compare the label against:
 
-**Step 4 — Validate the label:**
+```python
+["Analytical Take", "Preference Take", "Reactive Take"]
+```
 
-After parsing and normalizing the label, I will check whether it is in VALID_LABELS. If it is valid, I will return it. If it is not in VALID_LABELS, I will set the label to "unknown" and include the raw LLM response in the reasoning so the issue can be inspected later.
+If the parsed label matches one of these labels case-insensitively, return the official label spelling. If it does not match, set the label to `"unknown"` and include the raw response in the reasoning.
 
----
+### Step 5 — Handle errors gracefully
 
-**Step 5 — Handle errors gracefully:**
+Possible errors include:
 
-Things that could go wrong include an API/network error, an empty LLM response, a response that does not follow the requested format, or a label that is not in VALID_LABELS. The function should catch exceptions and return {"label": "unknown", "reasoning": "..."} instead of crashing. This way, one bad response will not stop the full evaluation loop.
+* missing API key
+* network/API error
+* empty response
+* unexpected response format
+* invalid label
 
----
-
-### Return value structure
+The function should catch exceptions and return:
 
 ```python
 {
-    "label": str,      # one of VALID_LABELS, or "unknown" if invalid/error
-    "reasoning": str,  # brief explanation from the LLM
+    "label": "unknown",
+    "reasoning": "Classifier error: <error message>"
+}
+```
+
+This prevents one bad response from crashing the full evaluation run.
+
+---
+
+## Return value structure
+
+```python
+{
+    "label": str,
+    "reasoning": str,
 }
 ```
 
@@ -186,11 +200,7 @@ Things that could go wrong include an API/network error, an empty LLM response, 
 
 ## Notes on label quality
 
-The classifier is only as good as your labels. If your training examples have
-inconsistent or ambiguous labels, the LLM will learn the wrong pattern.
-
-Before implementing the classifier, re-read `data/taxonomy.md` and double-check
-any labels you're unsure about. Annotation quality is part of the lab.
+The classifier is only as good as the dataset labels. The current dataset is imbalanced, with more Analytical Take examples than Preference Take or Reactive Take examples, so evaluation should include per-class metrics such as precision, recall, and F1 score instead of relying only on accuracy.
 
 ---
 
