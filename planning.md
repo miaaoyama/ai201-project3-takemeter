@@ -1,14 +1,8 @@
-# Planning
-
-## Community
-
-I chose r/kpopthoughts because it is a large, active community with a wide variety of discussion styles. Members post detailed analyses of artists and industry trends, emotional reactions to news, controversial opinions, and questions for other fans. This variety makes it a strong candidate for a classification task because the discourse naturally falls into several distinct categories.
-
 ## Labels
 
-### analysis
+### Analytical Take
 
-A post that makes a structured argument supported by specific examples, evidence, comparisons, statistics, or detailed reasoning.
+A post that makes a structured argument supported by specific examples, evidence, comparisons, observations, or detailed reasoning.
 
 **Example 1:** "Comparing album sales from 2019–2025 shows that fourth-generation groups are growing internationally faster than previous generations."
 
@@ -18,21 +12,21 @@ A post that makes a structured argument supported by specific examples, evidence
 
 ---
 
-### hot_take
+### Preference Take
 
-A strong opinion presented with little or no supporting evidence.
+A post that primarily expresses a personal preference, ranking, taste, or subjective opinion rather than presenting evidence-based reasoning.
 
-**Example 1:** "This is the most overrated group in K-pop right now."
+**Example 1:** "I prefer BTS's earlier albums because their sound felt more authentic to me."
 
-**Example 2:** "Every company should stop debuting trainees before age eighteen."
+**Example 2:** "This is my favorite comeback of the year even though it wasn't the most successful commercially."
 
 **Uncertain example:** "This group is declining because their recent songs are weaker."
 
 ---
 
-### reaction
+### Reactive Take
 
-A post that primarily expresses an emotional response to a recent event, release, announcement, controversy, or performance.
+A post that primarily expresses an emotional reaction to a recent event, release, announcement, controversy, or performance.
 
 **Example 1:** "I can't believe the comeback teaser just dropped. I'm so excited."
 
@@ -40,34 +34,21 @@ A post that primarily expresses an emotional response to a recent event, release
 
 **Uncertain example:** "I loved the comeback because the concept feels more mature."
 
----
-
-### question
-
-A post whose primary purpose is requesting information, recommendations, opinions, or discussion from the community.
-
-**Example 1:** "Which groups have the strongest live vocals?"
-
-**Example 2:** "What are some underrated B-sides I should listen to?"
-
-**Uncertain example:** "Am I the only one who thinks this comeback was disappointing?"
-
 ## Hard Edge Cases
 
-The hardest edge case will be distinguishing between analysis and hot_take. Many users include one or two pieces of evidence when expressing a strong opinion. My decision rule will be: if the evidence forms a genuine argument that could stand on its own without the opinionated language, label it analysis. If the evidence is minimal, selective, or primarily used to support a bold claim, label it hot_take.
+The hardest edge case will be distinguishing between Analytical Take and Preference Take. Many users provide one or two examples while expressing a personal preference. My decision rule will be: if the post builds a structured argument supported by evidence or reasoning, it will be labeled Analytical Take. If the post primarily expresses personal taste, rankings, favorites, or subjective opinions, it will be labeled Preference Take.
 
-Another difficult edge case is reaction versus analysis. If the post focuses primarily on feelings or immediate impressions, it will be labeled reaction. If it develops a structured argument using evidence, it will be labeled analysis.
+Another difficult edge case is distinguishing Reactive Take from Preference Take. If the post focuses mainly on an immediate emotional response to an event or release, it will be labeled Reactive Take. If the post focuses on long-term preferences or opinions, it will be labeled Preference Take.
 
 ## Data Collection Plan
 
-I will collect approximately 200 posts from r/kpopthoughts using publicly available posts. My target distribution is:
+I collected approximately 200 posts from r/kpopthoughts using publicly available posts. The final dataset contains 202 labeled examples with the following distribution:
 
-* Analysis: 50 posts
-* Hot Take: 50 posts
-* Reaction: 50 posts
-* Question: 50 posts
+* Analytical Take: 123 posts
+* Preference Take: 52 posts
+* Reactive Take: 27 posts
 
-If one category is underrepresented, I will intentionally search for additional examples using relevant keywords and post types to create a more balanced dataset.
+Although the dataset is not perfectly balanced, the labels reflect naturally occurring discussion patterns within the community. During evaluation, I will use precision, recall, and F1 score in addition to accuracy to account for class imbalance.
 
 ## Evaluation Metrics
 
